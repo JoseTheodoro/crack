@@ -9,14 +9,21 @@ import (
 	"github.com/JoseTheodoro42/carck/internal/service"
 )
 
-func worker(workerID int, partCh chan service.Part, fileContent []byte, wg *sync.WaitGroup, service *service.Csv) {
+func worker(workerID int, partCh chan service.Part, wg *sync.WaitGroup, service *service.Csv) {
 	defer wg.Done()
+
 	for part := range partCh {
-		err := service.WriteFilePart(fileContent, part, workerID)
+
+		fileContent, err := service.ReadFile(part)
+		fmt.Printf("File read successfully by worker: %d\n", workerID)
+
+		service.WriteFilePart(fileContent, part, workerID)
+
 		if err != nil {
 			log.Printf("Worker %d: failed to write part %d: %v", workerID, part.ID, err)
 			return
 		}
+
 		fmt.Printf("Worker %d: successfully wrote part %d\n", workerID, part.ID)
 	}
 }
@@ -34,16 +41,12 @@ func main() {
 
 	defer timer("main")()
 
-	csv := service.NewCsv("CSV_NAME.csv")
-	numberOfParts := 10
+	csv := service.NewCsv("big_csv.csv")
+	numberOfParts := 50
 
-	fileContent, err := csv.ReadFile()
+	parts := csv.DivideFileInParts(numberOfParts)
 
-	if err != nil {
-		log.Fatalf("Failed to read file: %v\n", err)
-	}
-
-	parts := csv.DivideFileInParts(fileContent, numberOfParts)
+	fmt.Println(parts)
 
 	ch := make(chan service.Part, numberOfParts)
 
@@ -51,7 +54,7 @@ func main() {
 
 	for i := range numberOfParts {
 		wg.Add(1)
-		go worker(i, ch, fileContent, &wg, csv)
+		go worker(i, ch, &wg, csv)
 	}
 
 	for _, part := range parts {
