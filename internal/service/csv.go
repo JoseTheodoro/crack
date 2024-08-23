@@ -24,18 +24,46 @@ func NewPart(ID int, startingPoint int, endingPoint int) *Part {
 	return &Part{ID: ID, startingPoint: startingPoint, endingPoint: endingPoint}
 }
 
-func (c *Csv) ReadFile() ([]byte, error) {
-	fileContent, err := os.ReadFile(c.fileName)
+func (c *Csv) ReadFile(limit Part) ([]byte, error) {
+
+	file, err := os.Open(c.fileName)
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("Finished reading file %s\n", c.fileName)
-	return fileContent, nil
+	defer file.Close()
+
+	bufferSize := limit.endingPoint - limit.startingPoint
+	buffer := make([]byte, bufferSize)
+
+	_, err = file.Seek(int64(limit.startingPoint), 0)
+	if err != nil {
+		return nil, err
+	}
+
+	n, err := file.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Finished reading %d bytes from file %s\n", n, c.fileName)
+	return buffer[:n], nil
 }
 
-func (c Csv) DivideFileInParts(fileContent []byte, amountOfParts int) []Part {
+func (c Csv) DivideFileInParts(amountOfParts int) []Part {
 
-	fileSize := len(fileContent)
+	file, err := os.Open(c.fileName)
+
+	if err != nil {
+		fmt.Printf("Could not open file: %v\n", err)
+	}
+
+	fileStat, err := file.Stat()
+
+	if err != nil {
+		fmt.Printf("Could not get the file stats: %v\n", err)
+	}
+
+	fileSize := int(fileStat.Size())
 	partSize := fileSize / amountOfParts
 	parts := make([]Part, 0, amountOfParts)
 
@@ -44,7 +72,7 @@ func (c Csv) DivideFileInParts(fileContent []byte, amountOfParts int) []Part {
 		endingPoint := startingPoint + partSize
 
 		if i == amountOfParts-1 {
-			endingPoint = len(fileContent)
+			endingPoint = int(fileStat.Size())
 		}
 
 		newPart := NewPart(i, startingPoint, endingPoint)
@@ -61,12 +89,11 @@ func (c Csv) DivideFileInParts(fileContent []byte, amountOfParts int) []Part {
 
 func (c Csv) WriteFilePart(fileContent []byte, part Part, ID int) error {
 
-	partContent := fileContent[part.startingPoint:part.endingPoint]
 	fileName := fmt.Sprintf("csv_part_%d.csv", part.ID)
 
 	fmt.Printf("Worker %d starting to write files!\n", ID)
 
-	err := os.WriteFile(fileName, partContent, 0644)
+	err := os.WriteFile(fileName, fileContent, 0644)
 
 	if err != nil {
 		log.Fatal("Error writing file:", err)
