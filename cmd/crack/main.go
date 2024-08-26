@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/JoseTheodoro42/carck/internal/cli"
@@ -19,7 +20,7 @@ func main() {
 
 	defer timer("main")()
 
-	csv := service.NewCsv("big_csv.csv")
+	csv := service.NewCsv(os.Args[0])
 
 	cli := cli.NewCsvCli(csv)
 
