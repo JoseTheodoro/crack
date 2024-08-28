@@ -16,7 +16,7 @@ func worker(workerID int, partCh chan service.Part, wg *sync.WaitGroup, service 
 	for part := range partCh {
 
 		fileContent, err := service.ReadFile(part)
-		fmt.Printf("File read successfully by worker: %d\n", workerID)
+		fmt.Printf("Part %d read successfully by worker: %d\n", part.ID, workerID)
 
 		service.WriteFilePart(fileContent, part, workerID)
 
@@ -42,12 +42,12 @@ func (cli *CsvCli) Run() {
 	fmt.Println("Starting CSV Cracking process...")
 
 	if len(os.Args) < 3 {
-		fmt.Println("Usage: crack <file> [parts]")
+		fmt.Println("Usage: go run cmd/crack/main.go <relative/path/to/file> [number of parts desired]")
 		return
 	}
 
 	commandFile := os.Args[1]
-	commandParts, err := strconv.Atoi(os.Args[2])
+	numberOfParts, err := strconv.Atoi(os.Args[2])
 
 	if err != nil {
 		fmt.Println("Second parameter should be an integer")
@@ -59,11 +59,8 @@ func (cli *CsvCli) Run() {
 	}
 
 	csv := service.NewCsv(commandFile)
-	numberOfParts := commandParts
 
 	parts := csv.DivideFileInParts(numberOfParts)
-
-	fmt.Println(parts)
 
 	ch := make(chan service.Part, numberOfParts)
 
