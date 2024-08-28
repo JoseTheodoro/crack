@@ -4,7 +4,7 @@ test:
 	echo "testing application"
 run:
 	echo "running application"
-	go run cmd/crack/main.go test.csv 5
+	go run cmd/crack/main.go ${file} ${parts}
 build:
 	echo "bulding application"
 tidy:

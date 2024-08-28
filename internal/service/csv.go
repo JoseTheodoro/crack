@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Csv struct {
@@ -89,17 +91,20 @@ func (c Csv) DivideFileInParts(amountOfParts int) []Part {
 
 func (c Csv) WriteFilePart(fileContent []byte, part Part, ID int) error {
 
-	fileName := fmt.Sprintf("csv_part_%d.csv", part.ID)
+	fileNameWithoutPath := filepath.Base(c.fileName)
+	fileName := fmt.Sprintf("%s_part_%d.csv", strings.TrimSuffix(fileNameWithoutPath, ".csv"), part.ID)
 
-	fmt.Printf("Worker %d starting to write files!\n", ID)
+	fmt.Printf("Worker %d starting to write part %d!\n", ID, part.ID)
 
-	err := os.WriteFile(fileName, fileContent, 0644)
+	dirName := "Generated Files"
+	os.Mkdir(dirName, os.ModePerm)
+	err := os.WriteFile(dirName+"/"+fileName, fileContent, 0644)
 
 	if err != nil {
 		log.Fatal("Error writing file:", err)
 		return err
 	}
-
+	fmt.Println("Original file name", c.fileName)
 	fmt.Printf("File written %s\n", fileName)
 	return nil
 }
